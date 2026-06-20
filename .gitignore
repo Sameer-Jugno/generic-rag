@@ -1,0 +1,4 @@
+.env
+VirtualEnv/
+__pycache__/
+*.pkl
