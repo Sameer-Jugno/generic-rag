@@ -1,4 +1,5 @@
 import fitz 
+from langchain_text_splitters import RecursiveCharacterTextSplitter 
 
 def extract_text_from_pdf(file_bytes: bytes) -> list:
     """Uses PyMuPDF (fitz) to read raw byte streams in-memory and extract text."""
@@ -7,15 +8,23 @@ def extract_text_from_pdf(file_bytes: bytes) -> list:
     for page_num, page in enumerate(document) : 
         chunks.append({
             "metadata" : {
-                    "page_num" : page_num
+                    "page_num" : page_num,
                 }, 
             "page_content" : page.get_text().strip()
         })
     return chunks
 
-def chunk_text(raw_text: str, filename: str, chunk_size: int = 1000, overlap: int = 200) -> list:
+def chunk_text(chunks : list, chunk_size: int = 1000, overlap: int = 200) -> list:
     """Segments raw text strings into overlapping dictionary blocks containing metadata."""
-    pass
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1000, 
+        chunk_overlap=200
+    )
+    texts = [chunk["page_content"] for chunk in chunks]
+    metadatas = [chunk["metadata"] for chunk in chunks]  
+
+    documents = splitter.create_documents(texts=texts, metadatas=metadatas)
+    return documents 
 
 def generate_embeddings(chunks: list) -> tuple:
     """Uses SentenceTransformers to turn text strings into 1024-dimension float vectors."""
