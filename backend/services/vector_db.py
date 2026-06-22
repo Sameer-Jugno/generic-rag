@@ -70,8 +70,7 @@ def get_qdrant_client() :
 def initialize_qdrant_collection(collection_name: str):
     """Connects via API to provision a brand-new private collection table on Qdrant Cloud."""
     client = get_qdrant_client() 
-    
-   # The standard professional pattern for Qdrant collection checks
+
     try:
         client.get_collection(collection_name)
         print(f"Collection '{collection_name}' already exists.")
@@ -81,10 +80,16 @@ def initialize_qdrant_collection(collection_name: str):
             vectors_config=VectorParams(distance=Distance.COSINE, size=1024)
         )
     
-def upsert_vectors(collection_name: str, embeddings: list, payloads: list):
+def upsert_vectors(collection_name: str, points: list):
     """Pushes the generated vector blocks and text metadata into the isolated cloud space."""
-    pass
+    client = get_qdrant_client() 
 
+    initialize_qdrant_collection(collection_name) 
+    
+    client.upsert(
+        collection_name=collection_name, 
+        points=points
+    )
 
 
 # if __name__ == "__main__" : 
