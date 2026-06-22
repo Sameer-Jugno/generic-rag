@@ -1,5 +1,8 @@
+import os 
 import fitz 
 import uuid
+from qdrant_client import QdrantClient
+from qdrant_client.models import Distance, VectorParams
 from qdrant_client.models import PointStruct 
 from langchain_text_splitters import RecursiveCharacterTextSplitter 
 from sentence_transformers import SentenceTransformer
@@ -54,15 +57,30 @@ def generate_embeddings(chunks: list) -> tuple:
             )
             batches.append(point)
     
-    return batches 
-    # text = embedder.encode_document(texts, precision="float32", show_progress_bar=True).tolist()
+    return batches      
 
-        
+def get_qdrant_client() : 
+    client = QdrantClient(
+        url=os.getenv("QDRANT_CLOUD_URL"), 
+        api_key=os.getenv("QDRANT_API_KEY"),
+        timeout=60
+    )
+    return client 
 
 def initialize_qdrant_collection(collection_name: str):
     """Connects via API to provision a brand-new private collection table on Qdrant Cloud."""
-    pass
-
+    client = get_qdrant_client() 
+    
+   # The standard professional pattern for Qdrant collection checks
+    try:
+        client.get_collection(collection_name)
+        print(f"Collection '{collection_name}' already exists.")
+    except Exception:
+        client.create_collection(
+            collection_name=collection_name, 
+            vectors_config=VectorParams(distance=Distance.COSINE, size=1024)
+        )
+    
 def upsert_vectors(collection_name: str, embeddings: list, payloads: list):
     """Pushes the generated vector blocks and text metadata into the isolated cloud space."""
     pass
