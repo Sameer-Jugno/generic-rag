@@ -2,10 +2,11 @@ import os
 import fitz 
 import uuid
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams
+from qdrant_client.models import Distance, VectorParams, SparseVectorParams
 from qdrant_client.models import PointStruct 
 from langchain_text_splitters import RecursiveCharacterTextSplitter 
 from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding, SparseTextEmbedding
 
 def extract_text_from_pdf(file_bytes: bytes) -> list:
     """Uses PyMuPDF (fitz) to read raw byte streams in-memory and extract text."""
@@ -34,29 +35,57 @@ def chunk_text(chunks : list, chunk_size: int = 1000, overlap: int = 200) -> lis
 
 def generate_embeddings(chunks: list) -> list:
     """Uses SentenceTransformers to turn text strings into 1024-dimension float vectors."""
-    embedder = SentenceTransformer(model="BAAI/bge-m3")
-    batch = 32 
-    batches = []
-    for i in range(0,len(chunks), batch) :   
-        batched_chunks = chunks[i:i+batch] 
-        batched_texts = [chunk.page_content for chunk in batched_chunks] 
+    
+    sparse_embedding_model = SparseTextEmbedding(model="BAAI/bge-m3")
+    text_embedding_model = TextEmbedding(model="BAAI/bge-m3")
+    
+    texts = [chunk.page_content for chunk in chunks]
+    batch=64
+    sparse_vector = list(sparse_embedding_model.embed(texts, batch_size=batch)) 
+    dense_vector = list(text_embedding_model.embed(texts, batch_size=batch))
 
-        vectors = embedder.encode(batched_texts).tolist()  
+    Points=[]
+    for index, chunk in enumerate(chunks) : 
+        point_id = str(uuid.uuid4())
 
-        for chunk, vector in zip(batched_chunks, vectors) : 
-            id = str(uuid.uuid4())
-            payload = {
-                "page_content" : chunk.page_content,
-                "metadata" : chunk.metadata
-            }
-            point = PointStruct(
-                id=id, 
-                vector=vector,
-                payload=payload
-            )
-            batches.append(point)   
-    return batches      
+        payload = {
+            "page_content" : chunk.page_content,
+            "metadata" : chunk.metadata 
+        }
 
+        point = PointStruct(
+            id=point_id, 
+            vector={
+                "sparse" : sparse_vector[index], 
+                "dense" : dense_vector[index]
+            },
+            payload = payload
+        )
+        Points.append(point)
+    return Points 
+
+    # embedder = SentenceTransformer(model="BAAI/bge-m3")
+    # batch = 32 
+    # batches = []
+    # for i in range(0,len(chunks), batch) :   
+    #     batched_chunks = chunks[i:i+batch] 
+    #     batched_texts = [chunk.page_content for chunk in batched_chunks] 
+
+    #     vectors = embedder.encode(batched_texts).tolist()  
+
+    #     for chunk, vector in zip(batched_chunks, vectors) : 
+    #         id = str(uuid.uuid4())
+    #         payload = {
+    #             "page_content" : chunk.page_content,
+    #             "metadata" : chunk.metadata
+    #         }
+    #         point = PointStruct(
+    #             id=id, 
+    #             vector=vector,
+    #             payload=payload
+    #         )
+    #         batches.append(point)   
+    # return batches      
 def get_qdrant_client() : 
     client = QdrantClient(
         url=os.getenv("QDRANT_CLOUD_URL"), 
@@ -72,7 +101,12 @@ def initialize_qdrant_collection(collection_name: str):
     try:
         client.create_collection(
             collection_name=collection_name, 
-            vectors_config=VectorParams(distance=Distance.COSINE, size=1024)
+            vectors_config={
+                "dense" : VectorParams(distance=Distance.COSINE,size=1024),
+            },
+            sparse_vectors_config ={
+                "sparse" : SparseVectorParams()
+            }   
         )
         print(f"Created a new remote collection: {collection_name}")
     except Exception as e:
