@@ -3,9 +3,8 @@ import fitz
 import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, SparseVectorParams
-from qdrant_client.models import PointStruct 
+from qdrant_client.models import PointStruct, SparseVectorParams, Prefetch, FusionQuery, Fusion, SparseVector
 from langchain_text_splitters import RecursiveCharacterTextSplitter 
-from sentence_transformers import SentenceTransformer
 from fastembed import TextEmbedding, SparseTextEmbedding
 
 def extract_text_from_pdf(file_bytes: bytes) -> list:
@@ -36,8 +35,8 @@ def chunk_text(chunks : list, chunk_size: int = 1000, overlap: int = 200) -> lis
 def generate_embeddings(chunks: list) -> list:
     """Uses SentenceTransformers to turn text strings into 1024-dimension float vectors."""
     
-    sparse_embedding_model = SparseTextEmbedding(model="BAAI/bge-m3")
-    text_embedding_model = TextEmbedding(model="BAAI/bge-m3")
+    sparse_embedding_model = SparseTextEmbedding(model_name="BAAI/bge-m3")
+    text_embedding_model = TextEmbedding(model_name="BAAI/bge-m3")
     
     texts = [chunk.page_content for chunk in chunks]
     batch=64
@@ -55,9 +54,12 @@ def generate_embeddings(chunks: list) -> list:
 
         point = PointStruct(
             id=point_id, 
-            vector={
-                "sparse" : sparse_vector[index], 
-                "dense" : dense_vector[index]
+            vectors={
+                "sparse": {
+                    "indices": sparse_vector[index].indices,
+                    "values": sparse_vector[index].values
+                },
+                "dense" : dense_vector[index].tolist() 
             },
             payload = payload
         )
@@ -131,3 +133,24 @@ def upsert_vectors(collection_name: str, points: list) -> bool :
     except Exception: 
         print("Failed to upload points to Qdrant Cloud.")
         return False
+
+def query_vector_db(collection_name : str, query : str, top_match : int ) -> str : 
+
+    sparse_embedder = SparseTextEmbedding(model_name="BAAI/bge-m3")
+    dense_embedder = TextEmbedding(model_name="BAAI/bge-m3")
+
+    client = get_qdrant_client() 
+
+    sparse_vector = list(sparse_embedder.embed([query]))[0] 
+    dense_vector = list(dense_embedder.embed([query]))[0].tolist() 
+
+    points = client.query_points(
+        collection_name=collection_name, 
+        prefetch=[
+            Prefetch(query=SparseVector(indices=sparse_vector.indices, values=sparse_vector.values), using="sparse", limit=top_match), 
+            Prefetch(query=dense_vector, using="dense", limit=top_match), 
+        ],
+        limit=top_match,
+        query=FusionQuery(fusion=Fusion.RRF)
+    )
+    return [point.payload["page_content"] for point in points]
