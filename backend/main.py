@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form 
+from dotenv import load_dotenv
 from pydantic import BaseModel 
 from fastapi.responses import StreamingResponse 
 from backend.services.vector_db import (
@@ -12,6 +13,8 @@ from backend.services.llm import (
     rewrite_query_with_history,
     generate_stream_response
 )
+
+load_dotenv() 
 
 class ChatRequest(BaseModel):
     query: str
@@ -29,10 +32,30 @@ def check_initialization() :
 
 @app.post("/api/upload") 
 async def implement_ingestion_pipeline(file : UploadFile = File(...), session_id : str = Form(...) ) :
+    print("-"*100)
+    print("Receiving File bytes...")
+    print("-"*100)
+    
     fileBytes = await file.read() 
+    
+    print("-"*100)
+    print("Extracting text from received file...")
+    print("-"*100)
     chunks = extract_text_from_pdf(fileBytes)
+    
+    print("-"*100)
+    print("Chunking the documents...")
+    print("-"*100)
     documents = chunk_text(chunks)
+
+    print("-"*100)
+    print("Generating embeddings...")
+    print("-"*100)
     points = generate_embeddings(documents)
+
+    print("-"*100)
+    print("Uploading embeddings...")
+    print("-"*100)
     result = upsert_vectors(session_id, points)  
     if result : 
         return {
