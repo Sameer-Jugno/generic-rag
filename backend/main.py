@@ -7,7 +7,8 @@ from backend.services.vector_db import (
     chunk_text, 
     generate_embeddings, 
     upsert_vectors,
-    query_vector_db
+    query_vector_db, 
+    delete_qdrant_collection
 )
 from backend.services.llm import (
     rewrite_query_with_history,
@@ -78,3 +79,18 @@ async def implement_chat_api(response : ChatRequest) :
         generate_stream_response(response.query, context, response.history),
         media_type="text/plain"
     )
+
+@app.delete("/api/collection/{session_id}") 
+def implementing_chat_deletion(session_id : str) : 
+
+    status = delete_qdrant_collection(session_id)
+    if status : 
+        return {
+            "Status" : status, 
+            "Response" : "Current Conversation's Collection is removed."
+        }
+    else : 
+        return {
+            "Status" : status, 
+            "Response" : "Current Conversation's Collection is unabled to remove."
+        }

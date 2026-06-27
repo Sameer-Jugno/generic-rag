@@ -1,5 +1,7 @@
 import os 
+import time
 from google import genai
+from google.genai.errors import APIError
 from backend.services.vector_db import query_vector_db
 
 def rewrite_query_with_history(query: str, history: list) -> str:
@@ -39,12 +41,21 @@ def generate_stream_response(query: str, contexts: list, history: list):
         3. Do NOT invent, assume, or hallucinate facts that are outside the provided reference text boundaries.
     """
 
-    response = client.models.generate_content_stream(
-        model="gemini-2.5-flash", 
-        contents=prompt
-    ) 
-    for chunk in response: 
-        yield chunk.text
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content_stream(
+                model="gemini-2.5-flash", 
+                contents=prompt
+            ) 
+            for chunk in response: 
+                yield chunk.text
+            return # Exits the function cleanly once the full stream completes
+        except APIError as e:
+            if e.code == 429 and attempt < 2:
+                print(f"⚠️ Gemini Quota limit hit during streaming response. Retrying in {2 ** attempt} seconds...")
+                time.sleep(2 ** attempt)
+                continue
+            raise e
 
 def get_gemini_client() : 
     key = os.getenv("GEMINI_API_KEY")

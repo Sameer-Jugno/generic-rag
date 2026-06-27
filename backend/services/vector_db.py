@@ -99,7 +99,18 @@ def initialize_qdrant_collection(collection_name: str):
             # return client.get_collection(collection_name)
         else:
             print(f"Notice during collection setup: {e}.")
-    
+
+def delete_qdrant_collection(collection_name : str) : 
+    client = get_qdrant_client() 
+
+    try : 
+        client.delete_collection(collection_name)   
+        print(f"Successfully destroyed collection: {collection_name}")
+        return True
+    except Exception as e : 
+        print(f"Error during collection purge: {e}")
+        return False 
+
 def upsert_vectors(collection_name: str, points: list) -> bool :
     """Pushes the generated vector blocks and text metadata into the isolated cloud space."""
     client = get_qdrant_client() 
