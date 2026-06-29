@@ -1,0 +1,5 @@
+.env
+VirtualEnv/
+__pycache__/
+*.pkl
+dockerization.txt
