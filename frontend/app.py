@@ -98,4 +98,3 @@ if user_query := st.chat_input("Ask a question..." if st.session_state["file_upl
             text = st.write_stream(ans.iter_content(decode_unicode=True))
 
     st.session_state.chat_history.append({"role": "assistant", "text": text})
-
