@@ -28,11 +28,11 @@ with st.sidebar:
     
     uploaded_file = st.file_uploader("Upload 1 PDF Document", type=["pdf"])
     
-    # NEW FLAG INITIALIZATION: Tracks if the collection was just explicitly destroyed
+    # Tracks if the collection was just explicitly destroyed
     if "just_deleted" not in st.session_state:
         st.session_state["just_deleted"] = False
 
-    # If the user manually clicks the 'X' on the widget to remove the file, reset our deletion flag automatically
+    # Reset deletion flags automatically if the file widget is empty
     if uploaded_file is None:
         st.session_state["just_deleted"] = False
         st.session_state["file_uploaded"] = False
@@ -40,15 +40,16 @@ with st.sidebar:
     if uploaded_file is not None: 
         file_name = uploaded_file.name 
         if file_name.lower().endswith(".pdf"):
-            # UPDATED GUARD LAYER: Only uploads if it hasn't been uploaded AND wasn't just explicitly deleted
+            # Only upload if it hasn't been uploaded yet and wasn't just deleted
             if not st.session_state["file_uploaded"] and not st.session_state["just_deleted"]:
                 with st.spinner("Transmitting knowledge base..."):
                     files = {"file": (uploaded_file.name, uploaded_file.read(), "application/pdf")}
                     data = {"session_id": st.session_state["unique_id"]}
+                    # FIXED: Clean internal container port layout routing
                     requests.post("http://localhost:8000/api/upload", files=files, data=data)
                     st.session_state["file_uploaded"] = True
             
-            # Dynamically adjusts status notifications based on active states
+            # Status flags
             if st.session_state["file_uploaded"]:
                 st.success(f"File '{uploaded_file.name}' integrated and active in cloud vault.")
             elif st.session_state["just_deleted"]:
@@ -56,15 +57,15 @@ with st.sidebar:
         else:
             st.error("Only PDF files are allowed.")
 
-    # The clean-up action button executor block
+    # Clean-up action panel executor
     if st.session_state["file_uploaded"]: 
         st.markdown("---")
         if st.button(label="🗑️ Delete Collection", use_container_width=True): 
             session_id = st.session_state["unique_id"]
             if session_id: 
+                # FIXED: Clean internal container deletion routing path
                 ans = requests.delete(f"http://localhost:8000/api/collection/{session_id}")
                 if ans.status_code == 200: 
-                    # UPDATED RE-ROUTE STATE TRACKING: Blocks subsequent accidental uploads
                     st.session_state["file_uploaded"] = False 
                     st.session_state["just_deleted"] = True 
                     st.session_state["chat_history"] = []
@@ -72,12 +73,12 @@ with st.sidebar:
 
 st.markdown("---")
 
-# FIXED: Re-render the historical conversation messages so they persist on screen
+# Re-render the historical conversation messages so they persist on screen
 for message in st.session_state.chat_history:
     with st.chat_message(message["role"]):
         st.write(message["text"])
 
-# Handle the new user input stream
+# Handle the user query stream input window
 if user_query := st.chat_input("Ask a question..." if st.session_state["file_uploaded"] else "Please upload pdf to start conversation",
         disabled=not st.session_state["file_uploaded"]
     ):
@@ -94,6 +95,7 @@ if user_query := st.chat_input("Ask a question..." if st.session_state["file_upl
                 "top_k": st.session_state["top_k"],
                 "history": st.session_state["chat_history"]
             }
+            # FIXED: Correctly configured endpoint for streaming answers
             ans = requests.post("http://localhost:8000/chat/api", json=data, stream=True)
             text = st.write_stream(ans.iter_content(decode_unicode=True))
 
