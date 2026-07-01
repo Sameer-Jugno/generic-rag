@@ -56,30 +56,8 @@ A production-grade, decoupled Retrieval-Augmented Generation (RAG) platform that
 
 ---
 
-## 🐳 Self-Contained Local Execution (Docker Setup)
-
-This entire application is completely containerized, removing the need to manually install dependencies or manage python environments locally.
-
-### 1. Configuration Keys
-The application reads cluster credentials and API endpoints securely at runtime through a local environment file:
-* `QDRANT_CLOUD_URL`
-* `QDRANT_API_KEY`
-* `GROQ_API_KEY`
-
-### 2. Build and Execute the Container Environment
-```bash
-# Compile the production image layer stack
-docker build -t generic-rag-app .
-
-# Spin the full-stack multi-process sandbox container online instantly
-docker run -d --env-file .env --name running-rag generic-rag-app
-```
-The user interface loads instantly inside the web browser by connecting directly to the local container network loopback address.
-
----
-
 ## 🚀 Try It Out
 
 Test the production-grade deployment live right now without any local machine configuration setup:
 
-👉 **[Launch Live RAG Application on Hugging Face Spaces](https://huggingface.co](https://huggingface.co/spaces/SameerJugno/pdf-chat-assistant)**
+👉 **Launch Live RAG Application on Hugging Face Spaces](https://huggingface.co(https://huggingface.co/spaces/SameerJugno/pdf-chat-assistant)**
