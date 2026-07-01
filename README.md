@@ -1,8 +1,6 @@
 # 💬 Decoupled Full-Stack Hybrid RAG Assistant
 
-A production-grade, decoupled Retrieval-Augmented Generation (RAG) platform that enables lightning-fast streaming conversations over any text-based PDF document. 
-The architecture completely isolates front-end UI delivery from heavy back-end vector parsing, orchestrates dual-server workloads concurrently inside a single Docker 
-container environment, and features automated, self-healing metadata lifecycles.
+A production-grade, decoupled Retrieval-Augmented Generation (RAG) platform that enables lightning-fast streaming conversations over text-based PDF documents. This architecture isolates front-end UI delivery from heavy back-end vector parsing, orchestrates dual-server workloads concurrently inside a single Docker container environment, and features automated, self-healing metadata lifecycles.
 
 ---
 
@@ -12,7 +10,7 @@ container environment, and features automated, self-healing metadata lifecycles.
             +--------------------------------------------------------+
 
             |               Streamlit Frontend UI                    |
-            |        (Port 7860 - Hugging Face / iframe Secure)      |
+            |        (Hugging Face Space / iframe Responsive)        |
             +---------------------------+----------------------------+
                                         |
                  REST API (HTTP)        |    Chunked Byte-Stream (SSE)
@@ -21,7 +19,7 @@ container environment, and features automated, self-healing metadata lifecycles.
             +--------------------------------------------------------+
 
             |               FastAPI Backend Engine                   |
-            |                 (Port 8000 Internal)                   |
+            |                 (Internal API Router)                  |
             +---------------------------+----------------------------+
                                         |
                  +----------------------+----------------------+
@@ -36,16 +34,15 @@ container environment, and features automated, self-healing metadata lifecycles.
 +----------------------------------+         +-----------------------------------+
 ```
 
-### 1. The High-Performance Hybrid Ingestion Pipeline
+### 1. High-Performance Hybrid Ingestion Pipeline
 * **Document Extraction**: Employs structural token matching via `PyMuPDF` to stream file byte streams safely in memory, eliminating brittle system-level tmp directory read locks.
-* **Document Constraints**: Optimized for processing standard text-based PDFs up to 5–10 MB. Highly comprehensive or heavily dense documents are supported but may require additional processing
-*   time during the initial embedding extraction step.
+* **Document Constraints**: Optimized for processing standard text-based PDFs up to 5–10 MB. High-density documents are fully supported, with processing time dynamically adapting during the initial embedding extraction step.
 * **Dual-Vector Generation**: Utilizes FastEmbed loops to simultaneously create high-density vectors (semantic representation) and sparse BM25 structures (exact keyword token mapping).
-* **Qdrant Cloud Ingestion**: Transmits multi-vector point structures into cloud clusters using an automated collection lifecycle management system.
+* **Qdrant Cloud Ingestion**: Transmits multi-vector point structures into the cloud cluster using an automated collection lifecycle management system.
 
-### 2. The Context-Restrained Retrieval & Streaming Pipeline
-* **Query Re-Writing Loop**: A multi-turn history parsing service intercepts conversational queries and runs them through a deterministic Llama 3.1 layer to dynamically resolve relative pronouns (e.g., "that business unit") before querying the database.
-* **Reciprocal Rank Fusion (RRF)**: Merges sparse keyword matches and dense embeddings inside Qdrant Cloud to deliver context matching across complex data sets.
+### 2. Context-Restrained Retrieval & Streaming Pipeline
+* **Query Re-Writing Loop**: A multi-turn history parsing service intercepts conversational queries and runs them through a deterministic Llama 3.1 layer to dynamically resolve relative pronouns (e.g., "that company's challenges") before querying the database.
+* **Reciprocal Rank Fusion (RRF)**: Merges sparse keyword matches and dense embeddings inside Qdrant Cloud to deliver accurate context matching across complex data sets.
 * **Server-Sent Events (SSE)**: Bypasses heavy HTTP memory overheads by opening a streaming reader loop, delivering real-time assistant responses token-by-token.
 
 ---
@@ -61,25 +58,23 @@ container environment, and features automated, self-healing metadata lifecycles.
 
 ## 🐳 Self-Contained Local Execution (Docker Setup)
 
-This entire application is completely containerized. You do not need to install Python, configure library files, or maintain virtual environments to execute it locally.
+This entire application is completely containerized, removing the need to manually install dependencies or manage python environments locally.
 
-### 1. Clone the Space and Configure Your Environment Keys
-Create a `.env` file right inside your root directory folder layout:
-```env
-QDRANT_CLOUD_URL=https://qdrant.io
-QDRANT_API_KEY=your_private_qdrant_api_key
-GROQ_API_KEY=your_private_groq_api_key
-```
+### 1. Configuration Keys
+The application reads cluster credentials and API endpoints securely at runtime through a local environment file:
+* `QDRANT_CLOUD_URL`
+* `QDRANT_API_KEY`
+* `GROQ_API_KEY`
 
 ### 2. Build and Execute the Container Environment
 ```bash
-# Compile the production image layer stack using Docker caching flags
+# Compile the production image layer stack
 docker build -t generic-rag-app .
 
 # Spin the full-stack multi-process sandbox container online instantly
-docker run -d -p 7860:7860 --env-file .env --name running-rag generic-rag-app
+docker run -d --env-file .env --name running-rag generic-rag-app
 ```
-Access the application's user interface directly by loading the local port routing address inside your web browser.
+The user interface loads instantly inside the web browser by connecting directly to the local container network loopback address.
 
 ---
 
