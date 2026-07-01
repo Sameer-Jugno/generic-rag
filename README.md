@@ -82,4 +82,4 @@ The user interface loads instantly inside the web browser by connecting directly
 
 Test the production-grade deployment live right now without any local machine configuration setup:
 
-👉 **[Launch Live RAG Application on Hugging Face Spaces]([https://huggingface.co](https://huggingface.co/spaces/SameerJugno/pdf-chat-assistant))**
+👉 **[Launch Live RAG Application on Hugging Face Spaces](https://huggingface.co](https://huggingface.co/spaces/SameerJugno/pdf-chat-assistant)**
