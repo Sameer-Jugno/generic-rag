@@ -60,4 +60,4 @@ A production-grade, decoupled Retrieval-Augmented Generation (RAG) platform that
 
 Test the production-grade deployment live right now without any local machine configuration setup:
 
-👉 **Launch Live RAG Application on Hugging Face Spaces -> (https://huggingface.co/spaces/SameerJugno/pdf-chat-assistant)**
+👉 **Launch Live RAG Application on Hugging Face Spaces : https://huggingface.co/spaces/SameerJugno/pdf-chat-assistant**
