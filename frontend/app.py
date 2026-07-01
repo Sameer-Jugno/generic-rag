@@ -6,6 +6,9 @@ st.set_page_config(page_title="PDF Chat Assistant", layout="wide", page_icon="�
 st.title("PDF Chat Assistant")
 st.caption("A decoupled, production-grade RAG architecture running via FastAPI and Docker.")
 
+st.config.set_option("server.enableCORS", False)
+st.config.set_option("server.enableXsrfProtection", False)
+
 # 1. Initialize global states safely
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -15,6 +18,9 @@ if "unique_id" not in st.session_state:
 
 if "file_uploaded" not in st.session_state:
     st.session_state["file_uploaded"] = False
+
+if "uploader_key" not in st.session_state:
+    st.session_state["uploader_key"] = 0
 
 with st.sidebar: 
     st.header("⚙️ System Configurations")
@@ -26,7 +32,7 @@ with st.sidebar:
     st.markdown("---")
     st.header("📂 Document Ingestion")
     
-    uploaded_file = st.file_uploader("Upload 1 PDF Document", type=["pdf"])
+    uploaded_file = st.file_uploader("Upload 1 PDF Document", type=["pdf"], key=f"pdf_uploader_{st.session_state['uploader_key']}")
     
     # Tracks if the collection was just explicitly destroyed
     if "just_deleted" not in st.session_state:
@@ -69,6 +75,7 @@ with st.sidebar:
                     st.session_state["file_uploaded"] = False 
                     st.session_state["just_deleted"] = True 
                     st.session_state["chat_history"] = []
+                    st.session_state["uploader_key"] += 1
                     st.rerun()
 
 st.markdown("---")
